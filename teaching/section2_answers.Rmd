@@ -1,0 +1,117 @@
+---
+title: "Section 2"
+output: html_notebook
+---
+
+Today we'll play around with R and learn a bit about functions!
+
+
+Setup and intro
+------------------
+
+You don't have to touch this function (but you can if you want). It takes as *arguments* a location code and a date (either an R date object or a date in the format "yyyy-dd-mm") and *returns* weather data from weather undergound for that date and place.
+
+```{r}
+get_weather_data = function(location_code,date) {
+  this_date = gsub("-","/",date) #change from yyyy-dd-mm to yyyy/mm/dd
+  this_url = sprintf("https://www.wunderground.com/history/airport/%s/%s/DailyHistory.html?format=1",location_code, this_date)
+  this_data = read.csv(this_url,header=T)
+  if ((!"TimePST" %in% names(this_data)) | (any(grepl("No daily or hourly history data available",this_data$TimePST)))) {
+    print("Error: this does not seem to be a valid request, is the location code or date incorrect? (request url below)")
+    print(this_url)
+    return()    
+  }
+  this_data$DateUTC = gsub('<br />','',this_data$DateUTC) #Remove trailing html linebreaks
+  this_data$TimePST = as.POSIXct(this_data$TimePST,tz="PST",format="%H:%M %p") #Convert to a format that's plottable as a time
+  this_data = this_data[,!(names(this_data) == "DateUTC.br...")] #Remove redundant column
+  return(this_data)
+}
+
+```
+
+Demo of the function:
+
+```{r}
+PA_location_code = "KPAO" #palo alto airport
+todays_date = Sys.Date() #get today's date
+
+todays_weather_data = get_weather_data(PA_location_code,todays_date)
+todays_weather_data
+```
+
+We might not want to have to type in the Palo Alto code and get the date every time we run the code, and maybe we're only interested in wind, so let's write a function to get todays palo alto wind for us! 
+
+```{r}
+get_PA_wind_info= function() {
+  PA_location_code = "KPAO" #palo alto airport
+  todays_date = Sys.Date() #get today's date
+  todays_weather_data = get_weather_data(PA_location_code,todays_date)
+  return(todays_weather_data[,c("TimePST","Wind.Direction","Wind.SpeedMPH")]) 
+}
+```
+
+demo of this function:
+```{r}
+get_PA_wind_info()
+```
+
+Now you all get to write some functions!
+
+T-shirt weather
+------------------
+Write a function to check if it's t-shirt weather. This can save you at least a few seconds in the morning. (hint: you may find `?Comparison` and `?tail` useful, depending on your implementation)
+```{r}
+tshirt_weather = function(location) {  #Checks if currently is tshirt weather (i.e. most recent temperature above 60) in location indicated by weather station code
+  todays_date = Sys.Date() #get today's date
+  todays_weather_data = get_weather_data(location,todays_date)
+  curr_temperature = tail(todays_weather_data$TemperatureF,1)
+  return(curr_temperature > 60)
+}
+```
+
+Now test it!
+```{r}
+tshirt_weather(PA_location_code)
+tshirt_weather("KMCO") #How about Orlando, FL
+```
+
+For a little more challenge, try to write a function to check if it's raining (will require some simple text analysis -- you might want to check out `?grepl` -- and you'll need to look at weather data from some days when it rained to see what you're looking for).
+
+Plotting temperature
+-----------------------
+Write a function to plot temperature over the course of the day for today and yesterday to compare (plot both days on the same axis). (Hint: you may want to check out `?date` to get an idea of how to get yesterdays date, and `?rbind` to combine datasets if you need to.)
+
+You may want to try this package for plotting for extra challenge (but plotting with base R plotting functions is totally acceptable too!):
+```{r}
+#install.packages("ggplot2") #uncomment this to install ggplot if you haven't already
+library(ggplot2)
+```
+
+```{r}
+plot_two_day_T = function (location_code) {
+  #Today
+  todays_date = Sys.Date() #get today's date
+  todays_weather_data = get_weather_data(location_code,todays_date) # get todays weather data
+  todays_weather_data$Day = "Today" #Create a new column for today's weather data identifying it as today's
+  #Yesterday
+  yesterdays_date = todays_date-1 #get yesteday's date
+  yesterdays_weather_data = get_weather_data(location_code,yesterdays_date) #get yesterdays weather data
+  yesterdays_weather_data$Day = "Yesterday" #Create a new column for yesterdays weather data identifying it as yesterdays
+  #Together
+  combined_weather_data = rbind(yesterdays_weather_data,todays_weather_data)
+  ggplot(combined_weather_data,aes(x=TimePST,y=TemperatureF,color=Day)) +
+    geom_line() +
+    theme_bw()
+}
+```
+
+Now test it!
+```{r}
+plot_two_day_T("KPAO")
+```
+
+
+What else could we do?
+-------------------------
+
+R libraries for lots of things, e.g. `twitteR` for interacting with twitter, `stattleshipR` for sports data, `fortunes` for getting random quotes. If you have time, try some of them out, or brainstorm things you could do with them!
