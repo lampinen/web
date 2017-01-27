@@ -16,13 +16,14 @@ get_weather_data = function(location_code,date) {
   this_date = gsub("-","/",date) #change from yyyy-dd-mm to yyyy/mm/dd
   this_url = sprintf("https://www.wunderground.com/history/airport/%s/%s/DailyHistory.html?format=1",location_code, this_date)
   this_data = read.csv(this_url,header=T)
-  if ((!"TimePST" %in% names(this_data)) | (any(grepl("No daily or hourly history data available",this_data$TimePST)))) {
+  if ((!any(grepl("Time", names(this_data)))) | (any(grepl("No daily or hourly history data available",this_data$Time)))) {
+
     print("Error: this does not seem to be a valid request, is the location code or date incorrect? (request url below)")
     print(this_url)
-    return()    
+    return()
   }
   this_data$DateUTC = gsub('<br />','',this_data$DateUTC) #Remove trailing html linebreaks
-  this_data$TimePST = as.POSIXct(this_data$TimePST,tz="PST",format="%H:%M %p") #Convert to a format that's plottable as a time
+  this_data$Time = as.POSIXct(this_data$Time,format="%H:%M %p") #Convert to a format that's plottable as a time
   this_data = this_data[,!(names(this_data) == "DateUTC.br...")] #Remove redundant column
   return(this_data)
 }
