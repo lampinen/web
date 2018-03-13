@@ -96,7 +96,7 @@ body {
 }
 
 #navigation-picture-spacer {
-	width: 30em;
+	width: 22em;
 	background: none;
 	padding: 0em;
 }
@@ -114,7 +114,7 @@ body {
 
 #name-role-div {
 	position: relative;
-	margin: 0em 0em 0em 30em;
+	margin: 0em 0em 0em 22em;
 	top: 15%;
 	white-space: nowrap;
 }
